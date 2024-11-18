@@ -6,6 +6,7 @@ import de.kosit.validationtool.impl.ResolvingMode
 import de.kosit.validationtool.impl.xml.BaseResolvingStrategy
 import de.kosit.validationtool.impl.xml.ProcessorProvider
 import de.kosit.validationtool.impl.xml.RelativeUriResolver
+import de.kosit.validationtool.impl.xml.StrictRelativeResolvingStrategy
 import net.sf.saxon.lib.UnparsedTextURIResolver
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
@@ -37,6 +38,16 @@ class ValidatorConfiguration {
         val checkConfiguration =
             KositConfiguration
                 .load(scenariosUri)
+                .setResolvingStrategy(object : StrictRelativeResolvingStrategy() {
+                    // exact copy of the original with only exception being the added "nested" scheme
+                    override fun createSchemaFactory(): SchemaFactory {
+                        forceOpenJdkXmlImplementation()
+                        val sf = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
+                        disableExternalEntities(sf)
+                        allowExternalSchema(sf, "file", "nested")
+                        return sf
+                    }
+                })
                 .build(ProcessorProvider.getProcessor())
         return DefaultCheck(checkConfiguration)
     }
